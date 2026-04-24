@@ -101,9 +101,9 @@ EOF
   echo "${INCLUDES}" > "$HOME/.gyp/include.gypi"
 fi
 
-# BUN_VSCODE_INSTALL=yes (default) routes installs through Bun.
-# Set BUN_VSCODE_INSTALL=no to fall back to `npm ci` without a revert.
-: "${BUN_VSCODE_INSTALL:=yes}"
+# BUN_VSCODE_INSTALL=no (default) uses `npm ci` — VS Code's nested overrides
+# are not yet supported by Bun. Set =yes to opt into Bun.
+: "${BUN_VSCODE_INSTALL:=no}"
 
 for i in {1..5}; do # try 5 times
   if [[ "${BUN_VSCODE_INSTALL}" == "yes" ]]; then
@@ -145,7 +145,7 @@ bun build/azure-pipelines/distro/mixin-npm.ts
 find .build/extensions -type f -name '*.node' -print -delete
 
 # generate Group Policy definitions
-bun run copy-policy-dto --prefix build
+bun build/lib/policies/copyPolicyDto.ts
 bun build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc linux
 
 bun run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"

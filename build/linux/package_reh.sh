@@ -128,8 +128,9 @@ EOF
   echo "${INCLUDES}" > "${HOME}/.gyp/include.gypi"
 fi
 
-# BUN_VSCODE_INSTALL=yes (default) routes installs through Bun.
-: "${BUN_VSCODE_INSTALL:=yes}"
+# BUN_VSCODE_INSTALL=no (default) uses `npm ci` — VS Code's nested overrides
+# are not yet supported by Bun. Set =yes to opt into Bun.
+: "${BUN_VSCODE_INSTALL:=no}"
 
 for i in {1..5}; do # try 5 times
   if [[ "${BUN_VSCODE_INSTALL}" == "yes" ]]; then

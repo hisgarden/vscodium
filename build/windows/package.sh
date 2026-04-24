@@ -11,8 +11,9 @@ tar -xzf ./vscode.tar.gz
 
 cd vscode || { echo "'vscode' dir not found"; exit 1; }
 
-# BUN_VSCODE_INSTALL=yes (default) routes installs through Bun.
-: "${BUN_VSCODE_INSTALL:=yes}"
+# BUN_VSCODE_INSTALL=no (default) uses `npm ci` — VS Code's nested overrides
+# are not yet supported by Bun. Set =yes to opt into Bun.
+: "${BUN_VSCODE_INSTALL:=no}"
 
 for i in {1..5}; do # try 5 times
   if [[ "${BUN_VSCODE_INSTALL}" == "yes" ]]; then
@@ -35,7 +36,7 @@ find .build/extensions -type f -name '*.node' -print -delete
 . ../build/windows/rtf/make.sh
 
 # generate Group Policy definitions
-bun run copy-policy-dto --prefix build
+bun build/lib/policies/copyPolicyDto.ts
 bun build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc win32
 
 bun run gulp "vscode-win32-${VSCODE_ARCH}-min-ci"

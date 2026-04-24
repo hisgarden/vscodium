@@ -203,11 +203,12 @@ bun build/npm/preinstall.ts
 mv .npmrc .npmrc.bak
 cp ../npmrc .npmrc
 
-# BUN_VSCODE_INSTALL=yes (default) routes the VS Code install through Bun.
-# Set BUN_VSCODE_INSTALL=no to fall back to `npm ci` when Bun's install path
-# fails on a specific arch or runner — escape hatch that does not require
-# a code revert.
-: "${BUN_VSCODE_INSTALL:=yes}"
+# BUN_VSCODE_INSTALL=no (default) uses `npm ci` because VS Code's package.json
+# uses nested `overrides` (e.g. kerberos.node-addon-api) which Bun does not yet
+# support — `bun install --frozen-lockfile` rejects the migrated lockfile.
+# Set BUN_VSCODE_INSTALL=yes to opt into Bun for the VS Code install once Bun
+# supports nested overrides or if you don't need lockfile-reproducible installs.
+: "${BUN_VSCODE_INSTALL:=no}"
 
 for i in {1..5}; do # try 5 times
   if [[ "${BUN_VSCODE_INSTALL}" == "yes" ]]; then

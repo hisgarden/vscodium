@@ -27,7 +27,7 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
     rm -f .build/extensions/ms-vscode.js-debug/src/win32-app-container-tokens.*.node
 
     # generate Group Policy definitions
-    bun run copy-policy-dto --prefix build
+    bun build/lib/policies/copyPolicyDto.ts
     bun build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc darwin
 
     bun run gulp "vscode-darwin-${VSCODE_ARCH}-min-ci"
@@ -43,7 +43,7 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
       . ../build/windows/rtf/make.sh
 
       # generate Group Policy definitions
-      bun run copy-policy-dto --prefix build
+      bun build/lib/policies/copyPolicyDto.ts
       bun build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc win32
 
       bun run gulp "vscode-win32-${VSCODE_ARCH}-min-ci"
@@ -64,7 +64,7 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
     # in CI, packaging will be done by a different job
     if [[ "${CI_BUILD}" == "no" ]]; then
       # generate Group Policy definitions
-      bun run copy-policy-dto --prefix build
+      bun build/lib/policies/copyPolicyDto.ts
       bun build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc linux
 
       bun run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"

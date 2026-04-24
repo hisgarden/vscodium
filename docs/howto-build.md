@@ -138,13 +138,15 @@ A build helper script can be found at `dev/build.sh`.
 
 ### Bun vs npm for VS Code's internal install
 
-The build routes VS Code's dependency install through Bun by default (`bun install --frozen-lockfile`). If Bun's install path fails on a specific runner or architecture, set `BUN_VSCODE_INSTALL=no` before invoking the build to fall back to `npm ci`:
+The harness uses Bun for every command *except* installing VS Code's own dependencies. VS Code's `package.json` uses npm's **nested** `overrides` syntax (for `kerberos`, etc.), which Bun does not yet support — `bun install --frozen-lockfile` rejects the migrated lockfile. So `prepare_vscode.sh` defaults to `npm ci` for the install step.
+
+To opt into Bun for the VS Code install anyway (e.g. once upstream Bun adds nested-override support), set:
 
 ```bash
-BUN_VSCODE_INSTALL=no ./dev/build.sh
+BUN_VSCODE_INSTALL=yes ./dev/build.sh
 ```
 
-The fallback is per-invocation — no code revert is needed. Node remains on `PATH` either way because VS Code's internal lifecycle scripts compile native Electron modules via `node-gyp`.
+The gate is per-invocation — no code change needed. Everything else (`bun run gulp …`, `bun <script>.ts`, `bun x`, Bun for the harness's own tooling) runs unconditionally.
 
 ### Insider
 
