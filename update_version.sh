@@ -63,7 +63,7 @@ generateJson() {
   name="${RELEASE_VERSION}"
   version="${BUILD_SOURCEVERSION}"
   productVersion="$( transformVersion "${RELEASE_VERSION}" )"
-  timestamp=$( node -e 'console.log(Date.now())' )
+  timestamp=$( bun -e 'console.log(Date.now())' )
 
   if [[ ! -f "assets/${ASSET_NAME}" ]]; then
     echo "Downloading asset '${ASSET_NAME}'"
@@ -214,3 +214,8 @@ else
 fi
 
 cd ..
+
+################################################################################
+# Changelog:
+# 2026-04-24  Use `bun -e` instead of `node -e` for the Date.now() timestamp.
+################################################################################

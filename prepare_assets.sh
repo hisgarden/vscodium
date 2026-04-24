@@ -40,9 +40,9 @@ set -ex
 if [[ "${SHOULD_BUILD_CLI}" != "no" ]]; then
   echo "Building and moving CLI"
 
-  APPLICATION_NAME="$( node -p "require(\"./vscode/product.json\").applicationName" )"
-  NAME_SHORT="$( node -p "require(\"./vscode/product.json\").nameShort" )"
-  TUNNEL_APPLICATION_NAME="$( node -p "require(\"./vscode/product.json\").tunnelApplicationName" )"
+  APPLICATION_NAME="$( bun -p "require(\"./vscode/product.json\").applicationName" )"
+  NAME_SHORT="$( bun -p "require(\"./vscode/product.json\").nameShort" )"
+  TUNNEL_APPLICATION_NAME="$( bun -p "require(\"./vscode/product.json\").tunnelApplicationName" )"
 
   mkdir -p "vscode-cli"
 
@@ -64,3 +64,8 @@ fi
 if [[ "${OS_NAME}" != "windows" ]]; then
   ./prepare_checksums.sh
 fi
+
+################################################################################
+# Changelog:
+# 2026-04-24  Use `bun -p` instead of `node -p` for product.json reads.
+################################################################################

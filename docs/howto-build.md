@@ -136,6 +136,16 @@ A build helper script can be found at `dev/build.sh`.
 
 > **Note for Windows users**: Git Bash is the recommended shell because the build scripts rely on POSIX utilities (`sed`, `grep`, `find`, etc.) bundled with Git for Windows. If you use WSL2, follow the Linux dependencies section instead.
 
+### Bun vs npm for VS Code's internal install
+
+The build routes VS Code's dependency install through Bun by default (`bun install --frozen-lockfile`). If Bun's install path fails on a specific runner or architecture, set `BUN_VSCODE_INSTALL=no` before invoking the build to fall back to `npm ci`:
+
+```bash
+BUN_VSCODE_INSTALL=no ./dev/build.sh
+```
+
+The fallback is per-invocation — no code revert is needed. Node remains on `PATH` either way because VS Code's internal lifecycle scripts compile native Electron modules via `node-gyp`.
+
 ### Insider
 
 The `insider` version can be built with `./dev/build.sh -i` on the `insider` branch.

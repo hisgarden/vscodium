@@ -11,7 +11,8 @@ fi
 REPOSITORY_OWNER="${ASSETS_REPOSITORY/\/*/}"
 REPOSITORY_NAME="${ASSETS_REPOSITORY/*\//}"
 
-npm install -g github-release-cli
+# Previously: npm install -g github-release-cli
+github-release() { bun x github-release-cli "$@"; }
 
 if [[ $( gh release view "${RELEASE_VERSION}" --repo "${ASSETS_REPOSITORY}" 2>&1 ) =~ "release not found" ]]; then
   echo "Creating release '${RELEASE_VERSION}'"
@@ -100,3 +101,9 @@ for FILE in *; do
 done
 
 cd ..
+
+################################################################################
+# Changelog:
+# 2026-04-24  Replace `npm install -g github-release-cli` with a `bun x`
+#             function wrapper.
+################################################################################

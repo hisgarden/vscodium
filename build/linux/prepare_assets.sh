@@ -19,13 +19,13 @@ if [[ "${SHOULD_BUILD_APPIMAGE}" != "no" && "${VSCODE_ARCH}" != "x64" ]]; then
 fi
 
 if [[ "${SHOULD_BUILD_DEB}" != "no" || "${SHOULD_BUILD_APPIMAGE}" != "no" ]]; then
-  npm run gulp "vscode-linux-${VSCODE_ARCH}-prepare-deb"
-  npm run gulp "vscode-linux-${VSCODE_ARCH}-build-deb"
+  bun run gulp "vscode-linux-${VSCODE_ARCH}-prepare-deb"
+  bun run gulp "vscode-linux-${VSCODE_ARCH}-build-deb"
 fi
 
 if [[ "${SHOULD_BUILD_RPM}" != "no" ]]; then
-  npm run gulp "vscode-linux-${VSCODE_ARCH}-prepare-rpm"
-  npm run gulp "vscode-linux-${VSCODE_ARCH}-build-rpm"
+  bun run gulp "vscode-linux-${VSCODE_ARCH}-prepare-rpm"
+  bun run gulp "vscode-linux-${VSCODE_ARCH}-build-rpm"
 fi
 
 if [[ "${SHOULD_BUILD_APPIMAGE}" != "no" ]]; then
@@ -65,3 +65,8 @@ if [[ "${SHOULD_BUILD_APPIMAGE}" != "no" ]]; then
 
   find assets -name '*.AppImage*' -exec bash -c 'mv $0 ${0/_-_/-}' {} \;
 fi
+
+################################################################################
+# Changelog:
+# 2026-04-24  Route gulp invocations through `bun run`.
+################################################################################
