@@ -261,3 +261,5 @@ jobs:
           installers-regex: '\.exe$' # only .exe files
           token: ${{ secrets.STRONGER_GITHUB_TOKEN }}
         if: env.SHOULD_DEPLOY == 'yes'
+
+
