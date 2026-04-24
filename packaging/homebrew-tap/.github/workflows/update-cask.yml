@@ -1,0 +1,123 @@
+name: Update VSCodium Cask
+
+on:
+  # Triggered by hisgarden/vscodium publish-stable-macos.yml after a successful release.
+  # The dispatching workflow must set client_payload.version and client_payload.quality.
+  repository_dispatch:
+    types:
+      - release-published
+
+  # Manual dispatch when needed (e.g., to seed first release).
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (tag on hisgarden/vscodium, e.g. 1.108.28028)"
+        required: true
+        type: string
+      quality:
+        description: "stable or insider"
+        required: true
+        default: "stable"
+        type: choice
+        options:
+          - stable
+          - insider
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve inputs
+        id: vars
+        env:
+          EVENT_VERSION: ${{ github.event.client_payload.version || inputs.version }}
+          EVENT_QUALITY: ${{ github.event.client_payload.quality || inputs.quality }}
+        run: |
+          echo "version=${EVENT_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "quality=${EVENT_QUALITY}" >> "$GITHUB_OUTPUT"
+
+          if [[ "${EVENT_QUALITY}" == "insider" ]]; then
+            echo "cask=Casks/vscodium-insiders.rb" >> "$GITHUB_OUTPUT"
+            echo "app=VSCodium-Insiders" >> "$GITHUB_OUTPUT"
+            echo "repo=hisgarden/vscodium-insiders" >> "$GITHUB_OUTPUT"
+          else
+            echo "cask=Casks/vscodium.rb" >> "$GITHUB_OUTPUT"
+            echo "app=VSCodium" >> "$GITHUB_OUTPUT"
+            echo "repo=hisgarden/vscodium" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch SHA256 sums per arch
+        id: sums
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+          APP: ${{ steps.vars.outputs.app }}
+          REPO: ${{ steps.vars.outputs.repo }}
+        run: |
+          set -euo pipefail
+
+          fetch_sha() {
+            local arch="$1"
+            local url="https://github.com/${REPO}/releases/download/${VERSION}/${APP}.${arch}.${VERSION}.dmg.sha256"
+            # The publish pipeline uploads .sha256 files alongside the dmg.
+            # Format is: "<sha>  <filename>".
+            curl -fsSL "$url" | awk '{ print $1 }'
+          }
+
+          arm64_sha=$(fetch_sha arm64)
+          x64_sha=$(fetch_sha x64)
+
+          echo "arm64=${arm64_sha}" >> "$GITHUB_OUTPUT"
+          echo "x64=${x64_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump cask version + sha256
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+          CASK: ${{ steps.vars.outputs.cask }}
+          ARM64_SHA: ${{ steps.sums.outputs.arm64 }}
+          X64_SHA: ${{ steps.sums.outputs.x64 }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import os, re, pathlib
+
+          cask = pathlib.Path(os.environ["CASK"])
+          text = cask.read_text()
+
+          text = re.sub(r'version "[^"]+"', f'version "{os.environ["VERSION"]}"', text, count=1)
+
+          # Replace the two sha256 lines in order (arm first, then intel, matching file layout).
+          def bump(match, replacement):
+            return match.group(0).replace(match.group(1), replacement)
+
+          pattern = re.compile(r'sha256 "([0-9a-f]{64})"')
+          shas = [os.environ["ARM64_SHA"], os.environ["X64_SHA"]]
+          out = []
+          i = 0
+          for line in text.splitlines(keepends=True):
+            m = pattern.search(line)
+            if m and i < len(shas):
+              line = line.replace(m.group(1), shas[i])
+              i += 1
+            out.append(line)
+          cask.write_text("".join(out))
+          PY
+
+      - name: Commit and push
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+          QUALITY: ${{ steps.vars.outputs.quality }}
+          CASK: ${{ steps.vars.outputs.cask }}
+        run: |
+          git config user.name "hisgarden-bot"
+          git config user.email "hisgarden-bot@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes — cask already at ${VERSION}"
+            exit 0
+          fi
+          git add "${CASK}"
+          git commit -m "${QUALITY}: bump cask to ${VERSION}"
+          git push
