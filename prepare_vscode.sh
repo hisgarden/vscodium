@@ -198,23 +198,37 @@ else
   fi
 fi
 
-node build/npm/preinstall.ts
+bun build/npm/preinstall.ts
 
 mv .npmrc .npmrc.bak
 cp ../npmrc .npmrc
 
+# BUN_VSCODE_INSTALL=yes (default) routes the VS Code install through Bun.
+# Set BUN_VSCODE_INSTALL=no to fall back to `npm ci` when Bun's install path
+# fails on a specific arch or runner — escape hatch that does not require
+# a code revert.
+: "${BUN_VSCODE_INSTALL:=yes}"
+
 for i in {1..5}; do # try 5 times
-  if [[ "${CI_BUILD}" != "no" && "${OS_NAME}" == "osx" ]]; then
-    CXX=clang++ npm ci && break
+  if [[ "${BUN_VSCODE_INSTALL}" == "yes" ]]; then
+    if [[ "${CI_BUILD}" != "no" && "${OS_NAME}" == "osx" ]]; then
+      CXX=clang++ bun install --frozen-lockfile && break
+    else
+      bun install --frozen-lockfile && break
+    fi
   else
-    npm ci && break
+    if [[ "${CI_BUILD}" != "no" && "${OS_NAME}" == "osx" ]]; then
+      CXX=clang++ npm ci && break
+    else
+      npm ci && break
+    fi
   fi
 
   if [[ $i == 5 ]]; then
-    echo "Npm install failed too many times" >&2
+    echo "VS Code install failed too many times (BUN_VSCODE_INSTALL=${BUN_VSCODE_INSTALL})" >&2
     exit 1
   fi
-  echo "Npm install failed $i, trying again..."
+  echo "VS Code install failed attempt $i, trying again..."
 
   sleep $(( 15 * (i + 1)))
 done
@@ -287,3 +301,9 @@ elif [[ "${OS_NAME}" == "windows" ]]; then
 fi
 
 cd ..
+
+################################################################################
+# Changelog:
+# 2026-04-24  Route VS Code preinstall + install through Bun; add
+#             BUN_VSCODE_INSTALL=no fallback gate to restore npm ci path.
+################################################################################
