@@ -34,17 +34,43 @@ gh repo create hisgarden/versions --public \
 
 ### 3. Load Apple codesign secrets into the publish environment
 
-On `hisgarden/vscodium` → Settings → Environments → create/edit `publish` environment. Add these secrets:
+Use the helper script `packaging/homebrew-tap/load-github-secrets.sh` — it reads from your existing Keychain (QuickRecorder-style layout: service `hisgarden`, accounts `appleid` + `notarize`) and uploads everything to GitHub Actions in one pass.
+
+**Prereq:** export your Developer ID Application certificate to `.p12`:
+
+```
+Keychain Access.app → "Developer ID Application: <Name> (<TEAM_ID>)"
+  → right-click → Export...
+  → File Format: Personal Information Exchange (.p12)
+  → set an export password (you'll enter it once more below)
+```
+
+**Then:**
+
+```bash
+./packaging/homebrew-tap/load-github-secrets.sh /path/to/DeveloperID.p12
+```
+
+The script will prompt for:
+- Apple ID (defaults to Keychain `appleid` item or git config email)
+- Team ID (defaults to `NSDC3EDS2G` — your team from QuickRecorder's `project.yml`)
+- App-specific password (pulled from Keychain `notarize` item, or prompted if missing)
+- `.p12` export password (the one you just set)
+- Optional `STRONGER_GITHUB_TOKEN` and `TAP_DISPATCH_TOKEN` (blank to skip)
+
+It uploads these secrets to `hisgarden/vscodium` → Settings → Environments → `publish`:
 
 | Secret | Source |
 |---|---|
-| `CERTIFICATE_OSX_NEW_P12_DATA` | `base64 -i DeveloperIDApp.p12 \| pbcopy` — paste |
-| `CERTIFICATE_OSX_NEW_P12_PASSWORD` | password you set on the .p12 export |
-| `CERTIFICATE_OSX_NEW_ID` | your Apple ID email (for notarization) |
-| `CERTIFICATE_OSX_NEW_APP_PASSWORD` | app-specific password from appleid.apple.com |
-| `CERTIFICATE_OSX_NEW_TEAM_ID` | Apple Developer team ID (10-char string) |
+| `CERTIFICATE_OSX_NEW_P12_DATA` | base64 of your `.p12` |
+| `CERTIFICATE_OSX_NEW_P12_PASSWORD` | the `.p12` export password |
+| `CERTIFICATE_OSX_NEW_ID` | Apple ID email |
+| `CERTIFICATE_OSX_NEW_APP_PASSWORD` | app-specific password from Keychain `hisgarden/notarize` |
+| `CERTIFICATE_OSX_NEW_TEAM_ID` | 10-char Apple team ID |
 | `STRONGER_GITHUB_TOKEN` | PAT with `repo` scope, to push to `hisgarden/versions` |
-| `TAP_DISPATCH_TOKEN` | PAT with `repo` scope, to dispatch to `hisgarden/homebrew-tap` (see step 5) |
+| `TAP_DISPATCH_TOKEN` | PAT with `repo` scope, to dispatch to `hisgarden/homebrew-tap` (step 5) |
+
+Verify at: https://github.com/hisgarden/vscodium/settings/environments/publish
 
 ### 4. Produce the first release
 

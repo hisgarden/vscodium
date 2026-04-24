@@ -37,17 +37,40 @@ jobs:
           EVENT_VERSION: ${{ github.event.client_payload.version || inputs.version }}
           EVENT_QUALITY: ${{ github.event.client_payload.quality || inputs.quality }}
         run: |
-          echo "version=${EVENT_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "quality=${EVENT_QUALITY}" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          # Strict validation at the trust boundary. Rejects newline / quote / shell
+          # metacharacter injection from repository_dispatch payloads before any
+          # further step consumes these values.
+          if ! [[ "${EVENT_VERSION}" =~ ^[0-9]+(\.[0-9]+){1,3}([.-][A-Za-z0-9.]+)?$ ]]; then
+            echo "::error::EVENT_VERSION=${EVENT_VERSION} failed strict semver validation"
+            exit 1
+          fi
+          if ! [[ "${EVENT_QUALITY}" =~ ^(stable|insider)$ ]]; then
+            echo "::error::EVENT_QUALITY=${EVENT_QUALITY} must be 'stable' or 'insider'"
+            exit 1
+          fi
+
+          # Heredoc-delimited form is defense-in-depth: even if the regex above
+          # ever misses a newline, the delimiter form prevents multi-line values
+          # from injecting additional output keys.
+          {
+            printf 'version<<OUTPUT_EOF\n%s\nOUTPUT_EOF\n' "${EVENT_VERSION}"
+            printf 'quality<<OUTPUT_EOF\n%s\nOUTPUT_EOF\n' "${EVENT_QUALITY}"
+          } >> "$GITHUB_OUTPUT"
 
           if [[ "${EVENT_QUALITY}" == "insider" ]]; then
-            echo "cask=Casks/vscodium-insiders.rb" >> "$GITHUB_OUTPUT"
-            echo "app=VSCodium-Insiders" >> "$GITHUB_OUTPUT"
-            echo "repo=hisgarden/vscodium-insiders" >> "$GITHUB_OUTPUT"
+            {
+              echo "cask=Casks/vscodium-insiders.rb"
+              echo "app=VSCodium-Insiders"
+              echo "repo=hisgarden/vscodium-insiders"
+            } >> "$GITHUB_OUTPUT"
           else
-            echo "cask=Casks/vscodium.rb" >> "$GITHUB_OUTPUT"
-            echo "app=VSCodium" >> "$GITHUB_OUTPUT"
-            echo "repo=hisgarden/vscodium" >> "$GITHUB_OUTPUT"
+            {
+              echo "cask=Casks/vscodium.rb"
+              echo "app=VSCodium"
+              echo "repo=hisgarden/vscodium"
+            } >> "$GITHUB_OUTPUT"
           fi
 
       - name: Fetch SHA256 sums per arch
@@ -82,19 +105,44 @@ jobs:
         run: |
           set -euo pipefail
           python3 <<'PY'
-          import os, re, pathlib
+          import os, re, pathlib, sys
 
-          cask = pathlib.Path(os.environ["CASK"])
+          version = os.environ["VERSION"]
+          cask_path = os.environ["CASK"]
+          arm64_sha = os.environ["ARM64_SHA"]
+          x64_sha = os.environ["X64_SHA"]
+
+          # Defense-in-depth: re-validate all untrusted inputs at this sink even
+          # though the Resolve-inputs step already did. Version already passed the
+          # shell regex; this is redundant-but-cheap. SHAs come from .sha256 files
+          # fetched over HTTPS — validate format before writing into the cask.
+          if not re.fullmatch(r"[0-9]+(\.[0-9]+){1,3}([.-][A-Za-z0-9.]+)?", version):
+            sys.exit(f"VERSION failed validation: {version!r}")
+          if not re.fullmatch(r"[0-9a-f]{64}", arm64_sha):
+            sys.exit(f"ARM64_SHA not a sha256: {arm64_sha!r}")
+          if not re.fullmatch(r"[0-9a-f]{64}", x64_sha):
+            sys.exit(f"X64_SHA not a sha256: {x64_sha!r}")
+          # cask_path is set from step outputs with a hardcoded value per quality;
+          # still ensure it lives inside Casks/ to prevent arbitrary file overwrite.
+          cask = pathlib.Path(cask_path)
+          if cask.parts[:1] != ("Casks",) or ".." in cask.parts:
+            sys.exit(f"CASK must be under Casks/: {cask_path!r}")
+
           text = cask.read_text()
 
-          text = re.sub(r'version "[^"]+"', f'version "{os.environ["VERSION"]}"', text, count=1)
+          # Use a replacement function to avoid backslash/backreference interpretation
+          # in re.sub's replacement string. version has already been validated to
+          # contain only [0-9.A-Za-z-] so this is belt-and-braces.
+          text = re.sub(
+            r'version "[^"]+"',
+            lambda _m: f'version "{version}"',
+            text,
+            count=1,
+          )
 
           # Replace the two sha256 lines in order (arm first, then intel, matching file layout).
-          def bump(match, replacement):
-            return match.group(0).replace(match.group(1), replacement)
-
           pattern = re.compile(r'sha256 "([0-9a-f]{64})"')
-          shas = [os.environ["ARM64_SHA"], os.environ["X64_SHA"]]
+          shas = [arm64_sha, x64_sha]
           out = []
           i = 0
           for line in text.splitlines(keepends=True):
