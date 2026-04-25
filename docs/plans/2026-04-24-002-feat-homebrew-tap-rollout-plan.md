@@ -83,7 +83,7 @@ security find-identity -v -p codesigning | grep "Developer ID Application"
 
 ## Implementation Units
 
-- [ ] U1. **Prerequisites verified**
+- [x] U1. **Prerequisites verified**
 
 **Goal:** Confirm CLI auth, repo permissions, and Developer ID cert are in place before touching anything.
 
@@ -99,9 +99,9 @@ security find-identity -v -p codesigning | grep "Developer ID Application"  # ex
 **Verification:** all four commands succeed and show the expected values.
 
 **Status:**
-- [ ] `gh auth status` OK
-- [ ] admin on `hisgarden/vscodium` confirmed
-- [ ] Developer ID Application cert present in login keychain
+- [x] `gh auth status` OK
+- [x] admin on `hisgarden/vscodium` confirmed
+- [x] Developer ID Application cert present in login keychain
 
 ---
 
@@ -138,10 +138,10 @@ git push
 - https://github.com/hisgarden/homebrew-tap lists `Casks/vscodium.rb`, `Casks/vscodium-insiders.rb`, `.github/workflows/update-cask.yml`, and the prior QuickRecorder cask — all present.
 
 **Status:**
-- [ ] tap cloned
-- [ ] casks + workflow copied
-- [ ] commit pushed
-- [ ] QuickRecorder cask still present (no clobber)
+- [x] tap cloned
+- [x] casks + workflow copied
+- [x] commit pushed
+- [x] QuickRecorder cask still present (no clobber)
 
 ---
 
@@ -163,8 +163,8 @@ gh repo view hisgarden/versions --json name,isEmpty   # expect: {"name":"version
 **Verification:** https://github.com/hisgarden/versions exists.
 
 **Status:**
-- [ ] repo created
-- [ ] confirmed on GitHub
+- [x] repo created
+- [x] confirmed on GitHub
 
 ---
 
@@ -178,8 +178,8 @@ gh repo view hisgarden/versions --json name,isEmpty   # expect: {"name":"version
 
 In **Keychain Access.app** → login keychain → My Certificates → right-click "Developer ID Application: ... (NSDC3EDS2G)" → **Export...** → Personal Information Exchange (.p12) → save as `~/Desktop/DeveloperID.p12` → set an export password (remember it).
 
-- [ ] cert exported to `~/Desktop/DeveloperID.p12`
-- [ ] export password noted
+- [x] cert exported to `~/Desktop/DeveloperID.p12`
+- [x] export password noted
 
 ### U4.2 — Create two PATs
 
@@ -191,8 +191,8 @@ open "https://github.com/settings/tokens/new?description=TAP_DISPATCH_TOKEN&scop
 # → generate → copy the ghp_... token
 ```
 
-- [ ] STRONGER_GITHUB_TOKEN generated
-- [ ] TAP_DISPATCH_TOKEN generated
+- [x] STRONGER_GITHUB_TOKEN generated
+- [x] TAP_DISPATCH_TOKEN generated
 
 ### U4.3 — Create `publish` environment and run the loader
 
@@ -229,9 +229,9 @@ Expect exactly these 7 names:
 - `STRONGER_GITHUB_TOKEN`
 - `TAP_DISPATCH_TOKEN`
 
-- [ ] `publish` env created
-- [ ] loader run, no errors
-- [ ] 7 secrets listed
+- [x] `publish` env created
+- [x] loader run, no errors
+- [x] 7 secrets listed
 
 ### U4.4 — Cleanup
 
@@ -239,7 +239,7 @@ Expect exactly these 7 names:
 rm ~/Desktop/DeveloperID.p12
 ```
 
-- [ ] `.p12` deleted from disk
+- [x] `.p12` deleted from disk
 
 ---
 
