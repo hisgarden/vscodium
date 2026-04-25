@@ -2,6 +2,9 @@ vscode*
 VS*/*
 VSCode*
 VSCodium*
+# allow packaging/ through — the homebrew-tap starter kit contains vscodium*.rb
+# which otherwise matches the VSCodium* pattern on case-insensitive filesystems
+!packaging/**
 .DS_Store
 *.env
 assets/

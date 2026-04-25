@@ -94,6 +94,20 @@ jobs:
         run: ./update_version.sh
         if: env.SHOULD_BUILD == 'yes'
 
+      - name: Trigger Homebrew tap update
+        if: env.SHOULD_BUILD == 'yes' && matrix.vscode_arch == 'arm64'
+        env:
+          GH_TOKEN: ${{ secrets.TAP_DISPATCH_TOKEN }}
+        run: |
+          if [[ -z "${GH_TOKEN}" ]]; then
+            echo "TAP_DISPATCH_TOKEN not set — skipping tap dispatch."
+            exit 0
+          fi
+          gh api "repos/${GITHUB_REPOSITORY_OWNER}/homebrew-tap/dispatches" \
+            -f event_type=release-published \
+            -f client_payload[version]="${RELEASE_VERSION}" \
+            -f client_payload[quality]=insider
+
       - name: Clean up keychain
         if: always()
         run: |
