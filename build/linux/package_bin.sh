@@ -101,13 +101,21 @@ EOF
   echo "${INCLUDES}" > "$HOME/.gyp/include.gypi"
 fi
 
+# BUN_VSCODE_INSTALL=no (default) uses `npm ci` — VS Code's nested overrides
+# are not yet supported by Bun. Set =yes to opt into Bun.
+: "${BUN_VSCODE_INSTALL:=no}"
+
 for i in {1..5}; do # try 5 times
-  npm ci --prefix build && break
+  if [[ "${BUN_VSCODE_INSTALL}" == "yes" ]]; then
+    bun install --frozen-lockfile --cwd build && break
+  else
+    npm ci --prefix build && break
+  fi
   if [[ $i == 5 ]]; then
-    echo "Npm install failed too many times" >&2
+    echo "Install failed too many times (BUN_VSCODE_INSTALL=${BUN_VSCODE_INSTALL})" >&2
     exit 1
   fi
-  echo "Npm install failed $i, trying again..."
+  echo "Install failed $i, trying again..."
 done
 
 if [[ -z "${VSCODE_SKIP_SETUPENV}" ]]; then
@@ -119,24 +127,28 @@ if [[ -z "${VSCODE_SKIP_SETUPENV}" ]]; then
 fi
 
 for i in {1..5}; do # try 5 times
-  npm ci && break
+  if [[ "${BUN_VSCODE_INSTALL}" == "yes" ]]; then
+    bun install --frozen-lockfile && break
+  else
+    npm ci && break
+  fi
   if [[ $i == 5 ]]; then
-    echo "Npm install failed too many times" >&2
+    echo "Install failed too many times (BUN_VSCODE_INSTALL=${BUN_VSCODE_INSTALL})" >&2
     exit 1
   fi
-  echo "Npm install failed $i, trying again..."
+  echo "Install failed $i, trying again..."
 done
 
-node build/azure-pipelines/distro/mixin-npm.ts
+bun build/azure-pipelines/distro/mixin-npm.ts
 
 # delete native files built in the `compile` step
 find .build/extensions -type f -name '*.node' -print -delete
 
 # generate Group Policy definitions
-npm run copy-policy-dto --prefix build
-node build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc linux
+bun build/lib/policies/copyPolicyDto.ts
+bun build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc linux
 
-npm run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
+bun run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
 
 if [[ -f "../build/linux/${VSCODE_ARCH}/ripgrep.sh" ]]; then
   bash "../build/linux/${VSCODE_ARCH}/ripgrep.sh" "../VSCode-linux-${VSCODE_ARCH}/resources/app/node_modules"
@@ -153,3 +165,10 @@ if [[ -n "${GITHUB_OUTPUT}" ]]; then
 fi
 
 cd ..
+
+################################################################################
+# Changelog:
+# 2026-04-24  Route installs, TS runs, and gulp through Bun; add
+#             BUN_VSCODE_INSTALL=no gate for npm ci fallback.
+#             Keep `npm config get target` (npm-specific config read).
+################################################################################

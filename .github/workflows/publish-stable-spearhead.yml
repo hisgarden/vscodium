@@ -79,6 +79,11 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
+      - name: Setup Bun environment
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: '.bun-version'
+
       - name: Clone VSCode repo
         run: . get_repo.sh
 

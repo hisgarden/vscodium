@@ -6,7 +6,7 @@ cd cli
 
 export CARGO_NET_GIT_FETCH_WITH_CLI="true"
 export VSCODE_CLI_APP_NAME="$( echo "${APP_NAME}" | awk '{print tolower($0)}' )"
-export VSCODE_CLI_BINARY_NAME="$( node -p "require(\"../product.json\").serverApplicationName" )"
+export VSCODE_CLI_BINARY_NAME="$( bun -p "require(\"../product.json\").serverApplicationName" )"
 export VSCODE_CLI_UPDATE_ENDPOINT="https://raw.githubusercontent.com/VSCodium/versions/refs/heads/master"
 
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
@@ -15,12 +15,16 @@ else
   export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/VSCodium/vscodium/releases"
 fi
 
-TUNNEL_APPLICATION_NAME="$( node -p "require(\"../product.json\").tunnelApplicationName" )"
-NAME_SHORT="$( node -p "require(\"../product.json\").nameShort" )"
+TUNNEL_APPLICATION_NAME="$( bun -p "require(\"../product.json\").tunnelApplicationName" )"
+NAME_SHORT="$( bun -p "require(\"../product.json\").nameShort" )"
 
+# `npm pack <remote-pkg>` downloads and tarballs a remote package.
+# Bun has no direct equivalent (bun pm pack packs the CWD only), so this
+# stays on npm. Node is still required for VS Code's internal build.
 npm pack @vscode/openssl-prebuilt@0.0.11
+rm -rf openssl
 mkdir openssl
-tar -xvzf vscode-openssl-prebuilt-0.0.11.tgz --strip-components=1 --directory=openssl
+tar -xzf vscode-openssl-prebuilt-0.0.11.tgz --strip-components=1 --directory=openssl
 
 if [[ "${OS_NAME}" == "osx" ]]; then
   if [[ "${VSCODE_ARCH}" == "arm64" ]]; then
@@ -110,3 +114,9 @@ else
 fi
 
 cd ..
+
+################################################################################
+# Changelog:
+# 2026-04-24  Route `node -p` reads of product.json through `bun -p`.
+#             Keep `npm pack` for remote package download (no Bun equivalent).
+################################################################################

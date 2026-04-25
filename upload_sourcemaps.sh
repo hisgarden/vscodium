@@ -2,7 +2,10 @@
 
 set -e
 
-npm install -g checksum github-release-cli
+# Previously: npm install -g checksum github-release-cli
+# Use `bun x` to run these on demand; avoids global install side effects.
+checksum() { bun x checksum "$@"; }
+github-release() { bun x github-release-cli "$@"; }
 
 mkdir -p sourcemaps
 cd sourcemaps
@@ -82,3 +85,9 @@ for FILE in *; do
 done
 
 cd ..
+
+################################################################################
+# Changelog:
+# 2026-04-24  Replace `npm install -g checksum github-release-cli` with
+#             `bun x` function wrappers; avoids global install side effects.
+################################################################################

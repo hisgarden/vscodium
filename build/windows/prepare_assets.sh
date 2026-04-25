@@ -2,7 +2,7 @@
 
 cd vscode || { echo "'vscode' dir not found"; exit 1; }
 
-npm run gulp "vscode-win32-${VSCODE_ARCH}-inno-updater"
+bun run gulp "vscode-win32-${VSCODE_ARCH}-inno-updater"
 
 if [[ "${SHOULD_BUILD_ZIP}" != "no" ]]; then
   7z.exe a -tzip "../assets/${APP_NAME}-win32-${VSCODE_ARCH}-${RELEASE_VERSION}.zip" -x!CodeSignSummary*.md -x!tools "../VSCode-win32-${VSCODE_ARCH}/*" -r
@@ -11,11 +11,11 @@ fi
 # . ../build/windows/appx/build.sh
 
 if [[ "${SHOULD_BUILD_EXE_SYS}" != "no" ]]; then
-  npm run gulp "vscode-win32-${VSCODE_ARCH}-system-setup"
+  bun run gulp "vscode-win32-${VSCODE_ARCH}-system-setup"
 fi
 
 if [[ "${SHOULD_BUILD_EXE_USR}" != "no" ]]; then
-  npm run gulp "vscode-win32-${VSCODE_ARCH}-user-setup"
+  bun run gulp "vscode-win32-${VSCODE_ARCH}-user-setup"
 fi
 
 if [[ "${VSCODE_ARCH}" == "ia32" || "${VSCODE_ARCH}" == "x64" ]]; then
@@ -51,3 +51,8 @@ if [[ "${VSCODE_ARCH}" == "ia32" || "${VSCODE_ARCH}" == "x64" ]]; then
     mv "build\\windows\\msi\\releasedir\\${APP_NAME}-${VSCODE_ARCH}-updates-disabled-${RELEASE_VERSION}.msi" assets/
   fi
 fi
+
+################################################################################
+# Changelog:
+# 2026-04-24  Route gulp invocations through `bun run`.
+################################################################################

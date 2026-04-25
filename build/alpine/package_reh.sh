@@ -32,16 +32,24 @@ if [[ -d "../patches/alpine/reh/" ]]; then
   done
 fi
 
+# BUN_VSCODE_INSTALL=no (default) uses `npm ci` — VS Code's nested overrides
+# are not yet supported by Bun. Set =yes to opt into Bun.
+: "${BUN_VSCODE_INSTALL:=no}"
+
 for i in {1..5}; do # try 5 times
-  npm ci && break
+  if [[ "${BUN_VSCODE_INSTALL}" == "yes" ]]; then
+    bun install --frozen-lockfile && break
+  else
+    npm ci && break
+  fi
   if [[ $i == 5 ]]; then
-    echo "Npm install failed too many times" >&2
+    echo "Install failed too many times (BUN_VSCODE_INSTALL=${BUN_VSCODE_INSTALL})" >&2
     exit 1
   fi
-  echo "Npm install failed $i, trying again..."
+  echo "Install failed $i, trying again..."
 done
 
-node build/azure-pipelines/distro/mixin-npm.ts
+bun build/azure-pipelines/distro/mixin-npm.ts
 
 if [[ "${VSCODE_ARCH}" == "x64" ]]; then
   PA_NAME="linux-alpine"
@@ -51,8 +59,8 @@ fi
 
 if [[ "${SHOULD_BUILD_REH}" != "no" ]]; then
   echo "Building REH"
-  npm run gulp minify-vscode-reh
-  npm run gulp "vscode-reh-${PA_NAME}-min-ci"
+  bun run gulp minify-vscode-reh
+  bun run gulp "vscode-reh-${PA_NAME}-min-ci"
 
   pushd "../vscode-reh-${PA_NAME}"
 
@@ -64,8 +72,8 @@ fi
 
 if [[ "${SHOULD_BUILD_REH_WEB}" != "no" ]]; then
   echo "Building REH-web"
-  npm run gulp minify-vscode-reh-web
-  npm run gulp "vscode-reh-web-${PA_NAME}-min-ci"
+  bun run gulp minify-vscode-reh-web
+  bun run gulp "vscode-reh-web-${PA_NAME}-min-ci"
 
   pushd "../vscode-reh-web-${PA_NAME}"
 
@@ -77,13 +85,11 @@ fi
 
 cd ..
 
-npm install -g checksum
-
 sum_file() {
   if [[ -f "${1}" ]]; then
     echo "Calculating checksum for ${1}"
-    checksum -a sha256 "${1}" > "${1}".sha256
-    checksum "${1}" > "${1}".sha1
+    bun x checksum -a sha256 "${1}" > "${1}".sha256
+    bun x checksum "${1}" > "${1}".sha1
   fi
 }
 
@@ -96,3 +102,9 @@ for FILE in *; do
 done
 
 cd ..
+
+################################################################################
+# Changelog:
+# 2026-04-24  Route installs, mixin-npm, gulp, and checksum through Bun; add
+#             BUN_VSCODE_INSTALL=no gate for npm ci fallback.
+################################################################################

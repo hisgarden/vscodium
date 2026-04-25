@@ -17,7 +17,8 @@
 
 ## <a id="dependencies"></a>Dependencies
 
-- node (check [.nvmrc](../.nvmrc) for version)
+- bun (check [.bun-version](../.bun-version) for version) — primary runtime and package manager for the build harness
+- node (check [.nvmrc](../.nvmrc) for version) — still required because VS Code's internal build compiles native Electron modules via `node-gyp` against Node headers and Electron packaging embeds the Node runtime; Bun cannot replace this
 - jq
 - git
 - python3 3.11
@@ -56,7 +57,15 @@ The build scripts are written in Bash, so on Windows you must run them inside **
   winget install --id Git.Git -e
   ```
 
-- **Node.js** — exact version is specified in [`.nvmrc`](../.nvmrc). Use [nvm-windows](https://github.com/coreybutler/nvm-windows) to manage versions:
+- **Bun** — primary runtime and package manager used by the harness scripts. Pinned in [`.bun-version`](../.bun-version):
+
+  ```cmd
+  winget install --id Oven-sh.Bun -e
+  ```
+
+  Alternatively install via PowerShell (`powershell -c "irm bun.sh/install.ps1 | iex"`). After installation, restart Git Bash so `bun` is on `PATH`.
+
+- **Node.js** — still required because VS Code's internal build compiles native Electron modules via `node-gyp` against Node headers and Electron packaging embeds the Node runtime. Exact version is specified in [`.nvmrc`](../.nvmrc). Use [nvm-windows](https://github.com/coreybutler/nvm-windows) to manage versions:
 
   ```cmd
   nvm install <version-from-.nvmrc>
@@ -104,7 +113,8 @@ The build scripts are written in Bash, so on Windows you must run them inside **
 After installing all tools, verify each is discoverable from Git Bash:
 
 ```bash
-node --version    # should match .nvmrc
+bun --version     # should match .bun-version
+node --version    # should match .nvmrc (still needed for VS Code internal build)
 npm --version
 jq --version
 python3 --version # should be 3.11.x
@@ -125,6 +135,18 @@ A build helper script can be found at `dev/build.sh`.
 - Windows (PowerShell): `powershell -ExecutionPolicy ByPass -File .\dev\build.ps1`
 
 > **Note for Windows users**: Git Bash is the recommended shell because the build scripts rely on POSIX utilities (`sed`, `grep`, `find`, etc.) bundled with Git for Windows. If you use WSL2, follow the Linux dependencies section instead.
+
+### Bun vs npm for VS Code's internal install
+
+The harness uses Bun for every command *except* installing VS Code's own dependencies. VS Code's `package.json` uses npm's **nested** `overrides` syntax (for `kerberos`, etc.), which Bun does not yet support — `bun install --frozen-lockfile` rejects the migrated lockfile. So `prepare_vscode.sh` defaults to `npm ci` for the install step.
+
+To opt into Bun for the VS Code install anyway (e.g. once upstream Bun adds nested-override support), set:
+
+```bash
+BUN_VSCODE_INSTALL=yes ./dev/build.sh
+```
+
+The gate is per-invocation — no code change needed. Everything else (`bun run gulp …`, `bun <script>.ts`, `bun x`, Bun for the harness's own tooling) runs unconditionally.
 
 ### Insider
 

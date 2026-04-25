@@ -33,7 +33,7 @@ if [[ -n "${CERTIFICATE_OSX_P12_DATA}" ]]; then
   echo "+ signing"
   export CODESIGN_IDENTITY AGENT_TEMPDIRECTORY
 
-  DEBUG="electron-osx-sign*" node vscode/build/darwin/sign.ts "$( pwd )"
+  DEBUG="electron-osx-sign*" bun vscode/build/darwin/sign.ts "$( pwd )"
   # codesign --display --entitlements :- ""
 
   echo "+ notarize"
@@ -66,7 +66,7 @@ fi
 if [[ -n "${CERTIFICATE_OSX_P12_DATA}" && "${SHOULD_BUILD_DMG}" != "no" ]]; then
   echo "Building and moving DMG"
   pushd "VSCode-darwin-${VSCODE_ARCH}"
-  npx create-dmg ./*.app .
+  bun x create-dmg ./*.app .
   mv ./*.dmg "../assets/${APP_NAME}.${VSCODE_ARCH}.${RELEASE_VERSION}.dmg"
   popd
 fi
@@ -82,3 +82,8 @@ if [[ -n "${CERTIFICATE_OSX_P12_DATA}" ]]; then
   # shellcheck disable=SC2086
   security list-keychains -s $KEYCHAINS
 fi
+
+################################################################################
+# Changelog:
+# 2026-04-24  Run darwin/sign.ts via `bun`; run create-dmg via `bun x`.
+################################################################################
