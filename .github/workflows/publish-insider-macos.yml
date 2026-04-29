@@ -2,9 +2,6 @@ name: Publish - Insider - macOS
 
 on:
   workflow_dispatch: {}
-  repository_dispatch:
-    types:
-      - publish-insider
 
 env:
   APP_NAME: VSCodium

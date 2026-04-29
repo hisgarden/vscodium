@@ -2,9 +2,6 @@ name: Publish - Stable - macOS
 
 on:
   workflow_dispatch: {}
-  repository_dispatch:
-    types:
-      - publish-stable
 
 env:
   APP_NAME: VSCodium
